@@ -157,4 +157,4 @@ Give it a star — it helps more QA engineers find this resource!
 
 ---
 
-*Built with ❤️ by Vaishnavi*
+*Built by Vaishnavi*
