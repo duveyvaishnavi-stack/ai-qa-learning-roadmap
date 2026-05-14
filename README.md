@@ -7,6 +7,36 @@
 ![Playwright](https://img.shields.io/badge/Playwright-TypeScript-green)
 ![Claude](https://img.shields.io/badge/Powered%20by-Claude%20AI-purple)
 
+💡 Why I built this
+
+Someone asked me: "Is there any way I could learn how to build these?"
+So I built a free learning kit.
+This repo started from a LinkedIn post that got 10,378 impressions — proof that QA engineers want practical AI content, not theory. Everything here is what I actually built and learned, shared openly so you don't have to figure it out alone.
+
+"This is the kind of AI-in-QA content that feels practical instead of theoretical."
+— Comment from the LinkedIn community
+
+
+🚀 How to use this repo
+If you're a beginner:
+
+Start with the 5-week roadmap below — follow it week by week
+Read the architecture section — plain English explanation
+Run orchestrator.py — see AI generate real tests in 3 minutes
+
+If you're intermediate:
+
+Clone the repo and run orchestrator.py immediately
+Swap the story variable with your own user story
+Update standards with your team's conventions
+Star the repo — Stage 2 + 3 dropping this week
+
+If you're advanced:
+
+Fork the repo and contribute MCP connectors or RAG improvements
+Open a PR — reviewed within 24 hours
+Tag me on LinkedIn when you ship something with it!
+
 ---
 
 ## 📌 What is this?
