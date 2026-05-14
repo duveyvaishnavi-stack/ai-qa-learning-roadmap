@@ -1,0 +1,149 @@
+"""
+AI QA Orchestration Pipeline — Stage 1
+=======================================
+Reads a user story and generates:
+  1. Test cases (happy path + edge cases + negative tests)
+  2. Ready-to-run Playwright TypeScript spec file
+
+Author: Vaishnavi Duvey
+GitHub: github.com/duveyvaishnavi-stack/ai-qa-learning-roadmap
+LinkedIn: https://www.linkedin.com/in/vaishnve-duvey-53b9a8143/
+
+Requirements:
+  pip install anthropic
+
+Usage:
+  export ANTHROPIC_API_KEY=sk-ant-your-key-here   # Mac/Linux
+  set ANTHROPIC_API_KEY=sk-ant-your-key-here       # Windows
+  python orchestrator.py
+"""
+
+import anthropic
+import json
+import os
+import sys
+
+# ── Setup ─────────────────────────────────────────────────────────────────
+client = anthropic.Anthropic()
+
+if not os.environ.get("ANTHROPIC_API_KEY"):
+    print("Error: ANTHROPIC_API_KEY not set")
+    print("Get your key at: https://console.anthropic.com")
+    sys.exit(1)
+
+# ── 1. Your user story (Stage 2: auto-fetched from Jira via MCP) ──────────
+story = {
+    "id": "STORY-1042",
+    "title": "Password reset via email",
+    "description": "As a user I want to reset my password via email so that I can regain access to my account.",
+    "acceptance_criteria": [
+        "Email sent within 30 seconds",
+        "Reset link expires after 1 hour",
+        "Link is single-use only",
+        "Invalid email shows inline error",
+        "Non-existent email shows generic message (security)"
+    ]
+}
+
+# ── 2. Your coding standards (Stage 3: fetched from RAG vector DB) ────────
+standards = """
+Framework: Playwright + TypeScript
+Style: page object model, kebab-case test IDs
+Naming: TC-{id}: {description}
+Locators: getByRole > getByLabel > getByText > CSS
+Always test: happy path, boundary, negative, security
+"""
+
+# ── 3. Generate test cases ────────────────────────────────────────────────
+def generate_test_cases(story, standards):
+    print(f"Generating test cases for {story['id']}...")
+    prompt = f"""
+You are a senior QA engineer. Generate a complete test suite as JSON.
+
+Story: {json.dumps(story, indent=2)}
+Standards: {standards}
+
+Return ONLY a JSON array. Each item must have:
+- id (string): TC-001 format
+- title (string): what is being tested
+- type (string): happy_path | edge_case | negative
+- steps (array): action steps
+- expected (string): expected result
+- priority (string): high | medium | low
+"""
+    response = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=2000,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    raw = response.content[0].text
+    clean = raw.replace("```json", "").replace("```", "").strip()
+    try:
+        test_cases = json.loads(clean)
+        print(f"Generated {len(test_cases)} test cases")
+        return test_cases
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse test cases: {e}")
+        sys.exit(1)
+
+# ── 4. Generate Playwright spec ───────────────────────────────────────────
+def generate_playwright_spec(test_cases, story):
+    print("Writing Playwright spec...")
+    prompt = f"""
+Write a complete Playwright TypeScript spec file.
+
+Story: {story['title']} ({story['id']})
+Standards: {standards}
+Test cases: {json.dumps(test_cases, indent=2)}
+
+Requirements:
+- Use test.describe() with story title
+- Group with comments: Happy Path / Edge Cases / Negative Tests
+- Use getByRole, getByLabel, getByText locators
+- Add auto-generated file header comment
+- Return ONLY TypeScript code, no explanation
+"""
+    response = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=3000,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    code = response.content[0].text
+    return code.replace("```typescript", "").replace("```ts", "").replace("```", "").strip()
+
+# ── 5. Save outputs ───────────────────────────────────────────────────────
+def save_outputs(story, test_cases, spec):
+    tc_file = f"{story['id'].lower()}-test-cases.json"
+    with open(tc_file, "w") as f:
+        json.dump(test_cases, f, indent=2)
+    print(f"Saved: {tc_file}")
+
+    spec_file = f"{story['id'].lower()}.spec.ts"
+    with open(spec_file, "w") as f:
+        f.write(spec)
+    print(f"Saved: {spec_file}")
+    return tc_file, spec_file
+
+# ── 6. Run the pipeline ───────────────────────────────────────────────────
+def main():
+    print("\nAI QA Orchestration Pipeline - Stage 1")
+    print("=" * 50)
+    print(f"Processing: {story['id']} - {story['title']}\n")
+
+    test_cases = generate_test_cases(story, standards)
+    spec = generate_playwright_spec(test_cases, story)
+    tc_file, spec_file = save_outputs(story, test_cases, spec)
+
+    happy    = sum(1 for tc in test_cases if tc.get('type') == 'happy_path')
+    edge     = sum(1 for tc in test_cases if tc.get('type') == 'edge_case')
+    negative = sum(1 for tc in test_cases if tc.get('type') == 'negative')
+
+    print("\n" + "=" * 50)
+    print("Pipeline complete!")
+    print(f"  Total : {len(test_cases)} | Happy: {happy} | Edge: {edge} | Negative: {negative}")
+    print(f"  Files : {tc_file}, {spec_file}")
+    print("\nNext: Add Jira MCP + GitHub MCP for full automation")
+    print("github.com/duveyvaishnavi-stack/ai-qa-learning-roadmap")
+
+if __name__ == "__main__":
+    main()
